@@ -66,24 +66,22 @@ void PassImpl::run(const Model& model) {
             auto reluInput = reluStage->input(0);
             auto reluOutput = reluStage->output(0);
 
-            if (reluInput->strides() == reluOutput->strides() || reluOutput->checkStrides(StridesRequirement::compact())) {
-                auto reluStageType = reluStage->type();
-                auto reluStageName = reluStage->name();
+            auto reluStageType = reluStage->type();
+            auto reluStageName = reluStage->name();
 
-                auto negativeSlope = reluStage->attrs().getOrDefault<float>("negativeSlope", 0.0f);
-                auto min_value = reluStage->attrs().getOrDefault<float>("min_value", 0.0f);
-                auto max_value = reluStage->attrs().getOrDefault<float>("max_value", 1.0f);
+            auto negativeSlope = reluStage->attrs().getOrDefault<float>("negativeSlope", 0.0f);
+            auto min_value = reluStage->attrs().getOrDefault<float>("min_value", 0.0f);
+            auto max_value = reluStage->attrs().getOrDefault<float>("max_value", 1.0f);
 
-                model->removeStage(reluStage);
-                model->replaceStageOutput(eltwiseStage->outputEdge(0), reluOutput);
+            model->removeStage(reluStage);
+            model->replaceStageOutput(eltwiseStage->outputEdge(0), reluOutput);
 
-                auto namePostfix = " + " + reluStageName;
-                eltwiseStage->appendNamePostfix(namePostfix);
-                eltwiseStage->attrs().set<StageType>("postOperation", reluStageType);
-                eltwiseStage->attrs().set<float>("negativeSlope", negativeSlope);
-                eltwiseStage->attrs().set<float>("min_value", min_value);
-                eltwiseStage->attrs().set<float>("max_value", max_value);
-            }
+            auto namePostfix = " + " + reluStageName;
+            eltwiseStage->appendNamePostfix(namePostfix);
+            eltwiseStage->attrs().set<StageType>("postOperation", reluStageType);
+            eltwiseStage->attrs().set<float>("negativeSlope", negativeSlope);
+            eltwiseStage->attrs().set<float>("min_value", min_value);
+            eltwiseStage->attrs().set<float>("max_value", max_value);
         }
     }
 }

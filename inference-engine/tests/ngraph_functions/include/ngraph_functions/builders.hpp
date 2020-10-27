@@ -433,5 +433,11 @@ std::shared_ptr<ngraph::Node> makeNormalizeL2(const ngraph::Output<Node>& data,
                                               const std::vector<int64_t>& axes,
                                               float eps,
                                               ngraph::op::EpsMode epsMode);
+
+std::shared_ptr<ngraph::Node> makeInterpolate(const ngraph::Output<Node>& data,
+                                              bool antialias,
+                                              const std::vector<int64_t>& axes,
+                                              const std::vector<float>& scales,
+                                              const std::vector<int64_t>& sizes);
 }  // namespace builder
 }  // namespace ngraph

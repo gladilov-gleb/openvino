@@ -199,6 +199,7 @@ void LayerTestsCommon::Validate() {
     auto expectedOutputs = CalculateRefs();
     const auto& actualOutputs = GetOutputs();
 
+    std::cout << "Validate()" << std::endl;
     if (expectedOutputs.empty()) {
         return;
     }

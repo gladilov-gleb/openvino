@@ -221,6 +221,10 @@ void MyriadInferRequest::GetResult() {
 
         const auto resultOffset = [&](const std::string& name) {
             const auto offset_it = _outputInfo.offset.find(name);
+            if (offset_it == _outputInfo.offset.cend()) {
+                std::cerr << "MyriadInferRequest::InferAsync()\n"
+                          << "Output offset [" << name << "] error.";
+            }
             IE_ASSERT(offset_it != _outputInfo.offset.end())  << "MyriadInferRequest::InferAsync()\n"
                                                                        << "Output offset [" << name << "] error.";
             const auto offset = vpu::checked_cast<size_t>(offset_it->second);

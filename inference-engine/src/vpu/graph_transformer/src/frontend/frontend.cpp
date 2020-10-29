@@ -36,6 +36,7 @@
 #include "vpu/ngraph/transformations/eliminate_shapeof_after_dsr.hpp"
 #include <vpu/ngraph/operations/dynamic_shape_resolver.hpp>
 #include <legacy/ie_util_internal.hpp>
+#include <ngraph/pass/visualize_tree.hpp>
 
 namespace vpu {
 
@@ -130,7 +131,6 @@ FrontEnd::FrontEnd(StageBuilder::Ptr stageBuilder, const ie::ICore* core)
         {"SoftPlus",                                           LAYER_PARSER(parseSoftPlus)},
         {"Swish",                                              LAYER_PARSER(parseSwish)},
         {"Activation",                                         LAYER_PARSER(parseActivation)},
-        {"HSwish",                                             LAYER_PARSER(parseHSwish)},
     }} {
         VPU_THROW_UNLESS(_core != nullptr, "Argument core is null");
     }
@@ -150,13 +150,13 @@ bool FrontEnd::isLayerSupported(const std::string& type) {
 }
 
 ie::ICNNNetwork::Ptr FrontEnd::convertNetwork(ie::ICNNNetwork& network) {
+    std::shared_ptr<ie::ICNNNetwork> convertedNetwork;
     // disable transformations for some cases
     const auto transformationsPredicate = [](const std::shared_ptr<const ngraph::Node>& node) -> bool {
         const bool casesWithDynamicOrStaticUsage =
             std::dynamic_pointer_cast<const ngraph::opset3::Gelu>(node) ||
             std::dynamic_pointer_cast<const ngraph::opset4::SoftPlus>(node) ||
-            std::dynamic_pointer_cast<const ngraph::opset5::Minimum>(node) ||
-            std::dynamic_pointer_cast<const ngraph::opset5::HSwish>(node);
+            std::dynamic_pointer_cast<const ngraph::opset5::Minimum>(node);
 
         const bool casesWithOnlyDynamicUsage =
             (std::dynamic_pointer_cast<const ngraph::opset3::MatMul>(node) ||
@@ -166,7 +166,70 @@ ie::ICNNNetwork::Ptr FrontEnd::convertNetwork(ie::ICNNNetwork& network) {
         return casesWithDynamicOrStaticUsage || casesWithOnlyDynamicUsage;
     };
 
+    std::unordered_set<std::string> hacked = {
+        "Constant_3164",
+        "Constant_2799"
+    };
+
+    std::unordered_map<std::string, std::vector<std::shared_ptr<ngraph::Node>>> nodes;
+
     auto nGraphFunc = network.getFunction();
+    for (auto const& operation : nGraphFunc->get_ordered_ops()) {
+        auto const& name = operation->get_friendly_name();
+        if (hacked.count(name)) {
+            std::stringstream suffix("_");
+            suffix << ngraph::as_type_ptr<ngraph::opset5::Constant>(operation)->get_element_type();
+            operation->set_friendly_name(name + suffix.str());
+        }
+
+        nodes[name].emplace_back(operation);
+    }
+
+    std::cout << std::count_if(nodes.cbegin(), nodes.cend(), [](decltype(nodes)::value_type const& value) { return value.second.size() > 1; }) << std::endl;
+
+    std::unordered_map<std::string, std::vector<std::shared_ptr<ngraph::Node>>> duplicated;
+    for (auto const& entry : nodes) {
+        if (entry.second.size() == 1) {
+            continue;
+        }
+        duplicated.insert(entry);
+    }
+
+    for (auto const& entry : duplicated) {
+        std::cout << entry.first << ": [";
+        for (std::size_t i = 0; i < entry.second.size(); ++i) {
+            std::cout << entry.second[i];
+            if (i < entry.second.size() - 1) {
+                std::cout << ", ";
+            }
+        }
+        std::cout << "]" << std::endl;
+        auto skip = [](std::shared_ptr<ngraph::Node const> const& node) {
+            auto isOutput = [](ngraph::Node const* node) { return ngraph::is_type<ngraph::opset5::Result>(node); };
+            auto const& outputs = node->outputs();
+            return std::any_of(outputs.cbegin(), outputs.cend(), [&](ngraph::Output<ngraph::Node const> const& output) {
+                auto const& consumers = output.get_target_inputs();
+                return std::any_of(consumers.cbegin(), consumers.cend(), [&](ngraph::Input<ngraph::Node> const& consumer) {
+                    return isOutput(consumer.get_node());
+                });
+            }) || isOutput(node.get());
+        };
+        for (auto& node : entry.second) {
+            if (skip(node)) {
+                continue;
+            }
+            std::stringstream uniqueName;
+            uniqueName << node;
+            auto name = uniqueName.str();
+            name.erase(std::remove_if(name.begin(), name.end(), isspace), name.end());
+            node->set_friendly_name(name);
+        }
+    }
+
+    for (auto const& operation : nGraphFunc->get_results()) {
+        std::cerr << "Result [" << operation->get_friendly_name() << "] " << operation << std::endl;
+    }
+
     // Disable shape inference (WA for generic operations)
     ngraph::op::GenericIE::DisableReshape noReshape(nGraphFunc);
 
@@ -180,7 +243,6 @@ ie::ICNNNetwork::Ptr FrontEnd::convertNetwork(ie::ICNNNetwork& network) {
     manager.register_pass<ngraph::pass::ConvertOpSet3ToOpSet2>();
     manager.register_pass<ngraph::pass::ConvertOpSet2ToOpSet1>();
     manager.register_pass<ngraph::pass::ConvertOpSet1ToLegacy>();
-
     manager.set_callback(transformationsPredicate);
     manager.run_passes(nGraphFunc);
 
@@ -444,6 +506,12 @@ ModelPtr FrontEnd::runCommonPasses(ie::ICNNNetwork::Ptr network,
     //
     // Parse IR Network
     //
+
+    InferenceEngine::OutputsDataMap outputsInfo;
+    network->getOutputsInfo(outputsInfo);
+    for (auto const& outputInfo : outputsInfo) {
+        std::cerr << "CNNNetwork output " << outputInfo.first << std::endl;
+    }
 
     _ieParsedNetwork = parseNetwork(*network);
 

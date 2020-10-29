@@ -289,7 +289,7 @@ static void getBINFiles(std::vector<std::string> &out, const std::string &direct
 
 int num_requests = 4;
 
-#define MIN_ITER 1000
+#define MIN_ITER 1
 
 #define USE_CALLBACK
 
@@ -348,10 +348,10 @@ int process(const std::string& modelFileName, const std::string& inputsDir,
     getBINFiles(binaries, inputsDir);
     int numBinaries = binaries.size();
 
-    if (pictures.empty() && binaries.empty()) {
-        std::cout << inputsDir << " directory doesn't contain input files" << std::endl;
-        return 1;
-    }
+//    if (pictures.empty() && binaries.empty()) {
+//        std::cout << inputsDir << " directory doesn't contain input files" << std::endl;
+//        return 1;
+//    }
 
     InferenceEngine::CNNNetwork cnnNetwork = ie.ReadNetwork(modelFileName);
 
@@ -404,30 +404,30 @@ int process(const std::string& modelFileName, const std::string& inputsDir,
         int n = r % num_networks;
         IECALL(exeNetwork[n]->CreateInferRequest(request[r], &resp));
 
-        for (auto &input : networkInputs) {
-            InferenceEngine::Blob::Ptr inputBlob;
-            IECALL(request[r]->GetBlob(input.first.c_str(), inputBlob, &resp));
-
-            const auto& dims = inputBlob->getTensorDesc().getDims();
-            auto layout = inputBlob->getTensorDesc().getLayout();
-
-            // number of channels is 3 for Image, dims order is always NCHW
-            const bool isImage = ((layout == InferenceEngine::NHWC || layout == InferenceEngine::NCHW) && dims[1] == 3);
-            const bool isVideo = (inputBlob->getTensorDesc().getDims().size() == 5);
-            if (isImage && (numPictures > 0)) {
-                if (!loadImage(pictures[(idxPic++) % numPictures], inputBlob))
-                    return 1;
-            } else if (isVideo && (numPictures > 0)) {
-                if (!loadVideo(pictures, inputBlob))
-                    return 1;
-            } else if (numBinaries > 0) {
-                if (!loadBinaryTensor(binaries[(idxPic++) % numBinaries], inputBlob))
-                    return 1;
-            } else {
-                std::cout << inputsDir << " directory doesn't contain correct input files" << std::endl;
-                return 1;
-            }
-        }
+//        for (auto &input : networkInputs) {
+//            InferenceEngine::Blob::Ptr inputBlob;
+//            IECALL(request[r]->GetBlob(input.first.c_str(), inputBlob, &resp));
+//
+//            const auto& dims = inputBlob->getTensorDesc().getDims();
+//            auto layout = inputBlob->getTensorDesc().getLayout();
+//
+//            // number of channels is 3 for Image, dims order is always NCHW
+//            const bool isImage = ((layout == InferenceEngine::NHWC || layout == InferenceEngine::NCHW) && dims[1] == 3);
+//            const bool isVideo = (inputBlob->getTensorDesc().getDims().size() == 5);
+//            if (isImage && (numPictures > 0)) {
+//                if (!loadImage(pictures[(idxPic++) % numPictures], inputBlob))
+//                    return 1;
+//            } else if (isVideo && (numPictures > 0)) {
+//                if (!loadVideo(pictures, inputBlob))
+//                    return 1;
+//            } else if (numBinaries > 0) {
+//                if (!loadBinaryTensor(binaries[(idxPic++) % numBinaries], inputBlob))
+//                    return 1;
+//            } else {
+//                std::cout << inputsDir << " directory doesn't contain correct input files" << std::endl;
+//                return 1;
+//            }
+//        }
 
         IECALL(request[r]->SetCompletionCallback(
                 [](InferenceEngine::IInferRequest::Ptr request, InferenceEngine::StatusCode code) {

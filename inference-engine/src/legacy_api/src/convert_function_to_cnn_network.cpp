@@ -943,6 +943,7 @@ void convertFunctionToICNNNetwork(const std::shared_ptr<const ::ngraph::Function
     bool keep_constants = keep_constant_inputs || ::ngraph::op::util::has_op_with_type<::ngraph::op::FakeQuantize>(graph);
 
     // Create layers and output data
+    std::unordered_map<size_t, CNNLayerPtr> id_to_cnn;
     for (const auto &layer : nodes) {
         if (isInternalLayer(layer, keep_constants)) continue;
 
@@ -951,6 +952,7 @@ void convertFunctionToICNNNetwork(const std::shared_ptr<const ::ngraph::Function
         rt_info["keep_constants"] = std::make_shared<::ngraph::VariantWrapper<int64_t>> (keep_constants);
 
         CNNLayerPtr cnnLayer = createCNNLayer(layer);
+        id_to_cnn[layer->get_instance_id()] = cnnLayer;
 
         // Set originalLayersNames from FusedNames
         std::string originalNames = ::ngraph::getFusedNames(layer);
@@ -1083,14 +1085,20 @@ void convertFunctionToICNNNetwork(const std::shared_ptr<const ::ngraph::Function
                 }
             }
 
-            CNNLayerPtr prevCnnLayer;
-            StatusCode ret = cnnNetworkImpl->getLayerByName(input->get_friendly_name().c_str(), prevCnnLayer, nullptr);
-            if (ret != OK)
+//            CNNLayerPtr prevCnnLayer;
+//            StatusCode ret = cnnNetworkImpl->getLayerByName(input->get_friendly_name().c_str(), prevCnnLayer, nullptr);
+//            if (ret != OK)
+            if (!id_to_cnn.count(input->get_instance_id()))
                 THROW_IE_EXCEPTION << "Cannot find layer with name: " << input->get_friendly_name();
 
-            CNNLayerPtr cnnLayer;
-            ret = cnnNetworkImpl->getLayerByName(layer->get_friendly_name().c_str(), cnnLayer, nullptr);
-            if (ret != OK) THROW_IE_EXCEPTION << "Cannot find layer with name: " << layer->get_friendly_name();
+//            CNNLayerPtr cnnLayer;
+//            ret = cnnNetworkImpl->getLayerByName(layer->get_friendly_name().c_str(), cnnLayer, nullptr);
+//            if (ret != OK) THROW_IE_EXCEPTION << "Cannot find layer with name: " << layer->get_friendly_name();
+            if (!id_to_cnn.count(layer->get_instance_id()))
+                THROW_IE_EXCEPTION << "Cannot find layer with name: " << input->get_friendly_name();
+
+            CNNLayerPtr prevCnnLayer = id_to_cnn[input->get_instance_id()];
+            CNNLayerPtr cnnLayer = id_to_cnn[layer->get_instance_id()];
 
             auto inIndex = layer->input(i).get_index();
             if (cnnLayer->insData.size() <= (inIndex - count_of_skipped) ||

@@ -121,6 +121,8 @@ static std::map<std::string, std::string> configure(const std::string &configFil
         config[InferenceEngine::MYRIAD_TILING_CMX_LIMIT_KB] = FLAGS_VPU_TILING_CMX_LIMIT_KB;
     }
 
+    config[InferenceEngine::MYRIAD_IGNORE_UNKNOWN_LAYERS] = CONFIG_VALUE(YES);
+
     return config;
 }
 

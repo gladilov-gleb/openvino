@@ -66,6 +66,12 @@ IeParsedNetwork parseNetwork(const ie::ICNNNetwork& network) {
             const auto constBlob = layer->blobs.begin()->second;
             IE_ASSERT(constBlob != nullptr);
 
+            if (constData->getName() == "Constant_3164") {
+                std::cout << "It's " << constData->getName() << ": dims = ";
+                std::copy(constData->getDims().cbegin(), constData->getDims().cend(), std::ostream_iterator<std::size_t>(std::cout, " "));
+                std::cout << "element type = " << constData->getPrecision() << " blob byte size = " << constBlob->byteSize() << std::endl;
+            }
+
             out.constDatas.emplace_back(constData, constBlob);
 
             continue;

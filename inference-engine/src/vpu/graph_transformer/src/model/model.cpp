@@ -97,6 +97,10 @@ Data ModelObj::addConstData(
         const DataContent::Ptr& content) {
     IE_ASSERT(content != nullptr);
 
+    if (!(desc.totalDimSize() * desc.elemSize() == content->byteSize())) {
+        std::cout << "yak" << std::endl;
+    }
+
     VPU_THROW_UNLESS(desc.totalDimSize() * desc.elemSize() == content->byteSize(),
         "addConstData error: while duplicating {} Const data got different "
         "newDesc and content byte sizes ({} and {} respectively)",

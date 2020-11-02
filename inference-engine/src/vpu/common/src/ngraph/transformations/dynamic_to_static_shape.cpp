@@ -24,6 +24,7 @@
 #include "vpu/ngraph/transformations/dynamic_to_static_shape_unsqueeze.hpp"
 #include "vpu/ngraph/transformations/dynamic_to_static_shape_variadic_split.hpp"
 #include "vpu/ngraph/transformations/dynamic_to_static_shape_loop.hpp"
+#include "vpu/ngraph/transformations/dynamic_to_static_shape_gather_elements.hpp"
 
 #include "vpu/ngraph/utilities.hpp"
 #include "vpu/utils/error.hpp"

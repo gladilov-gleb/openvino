@@ -61,6 +61,7 @@
 #include "onnx_import/op/floor.hpp"
 #include "onnx_import/op/gather.hpp"
 #include "onnx_import/op/gather_nd.hpp"
+#include "onnx_import/op/gather_elements.hpp"
 #include "onnx_import/op/gemm.hpp"
 #include "onnx_import/op/global_average_pool.hpp"
 #include "onnx_import/op/global_max_pool.hpp"
@@ -345,6 +346,7 @@ namespace ngraph
             REGISTER_OPERATOR("Floor", 1, floor);
             REGISTER_OPERATOR("Gather", 1, gather);
             REGISTER_OPERATOR("GatherND", 1, gather_nd);
+            REGISTER_OPERATOR("GatherElements", 11, gather_elements);
             REGISTER_OPERATOR("Gemm", 1, gemm);
             REGISTER_OPERATOR("Gemm", 6, gemm);
             REGISTER_OPERATOR("GlobalAveragePool", 1, global_average_pool);

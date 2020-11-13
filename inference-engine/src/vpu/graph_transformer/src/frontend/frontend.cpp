@@ -385,7 +385,7 @@ void FrontEnd::parseLayer(const Model& model, const ie::CNNLayerPtr& layer, cons
 void FrontEnd::defaultOnUnsupportedLayerCallback(const Model& model, const ie::CNNLayerPtr& layer, const DataVector& inputs, const DataVector& outputs,
                                                  const std::string& extraMessage) {
     const auto& env = CompileEnv::get();
-    if (layer->type != "GatherElements") {
+    if (layer->type != "GatherElements" && layer->type != "Round") {
         VPU_THROW_UNSUPPORTED_UNLESS(env.config.ignoreUnknownLayers, "Failed to compile layer \"%v\": %v", layer->name,
                                      extraMessage);
     }

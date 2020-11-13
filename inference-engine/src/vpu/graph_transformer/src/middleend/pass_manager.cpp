@@ -249,8 +249,8 @@ PassSet::Ptr PassManager::buildMiddleEnd() {
     ADD_PASS(mergeReLUAndBias);
     ADD_DUMP_PASS("mergeReLUAndBias");
 
-    ADD_PASS(mergeEltwiseAndReLUDynamic);
-    ADD_DUMP_PASS("mergeEltwiseAndReLUDynamic");
+    ADD_PASS(mergeEltwiseAndReLU);
+    ADD_DUMP_PASS("mergeEltwiseAndReLU");
 
     //
     // Data layout adjustment
@@ -269,13 +269,6 @@ PassSet::Ptr PassManager::buildMiddleEnd() {
         ADD_PASS(mergePermuteStages);
         ADD_DUMP_PASS("mergePermuteStages");
     }
-
-    //
-    // Model SW-specific optimizations after data layout adjustment
-    //
-
-    ADD_PASS(mergeEltwiseAndReLUStatic);
-    ADD_DUMP_PASS("mergeEltwiseAndReLUStatic");
 
     //
     // Model special stages processing

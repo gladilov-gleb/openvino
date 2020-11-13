@@ -13,33 +13,12 @@ namespace vpu {
 
 namespace {
 
-enum class MergeMode {
-    DYNAMIC_NETWORK,
-    STATIC_NETWORK
-};
-
 class PassImpl final : public Pass {
 public:
-    explicit PassImpl(MergeMode mode) : m_mode(mode) {}
     void run(const Model& model) override;
-
-private:
-    MergeMode m_mode;
 };
 
 void PassImpl::run(const Model& model) {
-    if (m_mode == MergeMode::DYNAMIC_NETWORK) {
-        VPU_PROFILE(mergeEltwiseAndReLUDynamic);
-        if (model->isStatic()) {
-            return;
-        }
-    } else if (m_mode == MergeMode::STATIC_NETWORK) {
-        VPU_PROFILE(mergeEltwiseAndReLUStatic);
-        if (model->isDynamic()) {
-            return;
-        }
-    }
-
     for (const auto& eltwiseStage : model->getStages()) {
         if (eltwiseStage == nullptr) {
             continue;
@@ -80,36 +59,30 @@ void PassImpl::run(const Model& model) {
             auto reluInput = reluStage->input(0);
             auto reluOutput = reluStage->output(0);
 
-            if (model->isDynamic() || reluInput->strides() == reluOutput->strides() || reluOutput->checkStrides(StridesRequirement::compact())) {
-                auto reluStageType = reluStage->type();
-                auto reluStageName = reluStage->name();
+            auto reluStageType = reluStage->type();
+            auto reluStageName = reluStage->name();
 
-                auto negativeSlope = reluStage->attrs().getOrDefault<float>("negativeSlope", 0.0f);
-                auto min_value = reluStage->attrs().getOrDefault<float>("min_value", 0.0f);
-                auto max_value = reluStage->attrs().getOrDefault<float>("max_value", 1.0f);
+            auto negativeSlope = reluStage->attrs().getOrDefault<float>("negativeSlope", 0.0f);
+            auto min_value = reluStage->attrs().getOrDefault<float>("min_value", 0.0f);
+            auto max_value = reluStage->attrs().getOrDefault<float>("max_value", 1.0f);
 
-                model->removeStage(reluStage);
-                model->replaceStageOutput(eltwiseStage->outputEdge(0), reluOutput);
+            model->removeStage(reluStage);
+            model->replaceStageOutput(eltwiseStage->outputEdge(0), reluOutput);
 
-                auto namePostfix = " + " + reluStageName;
-                eltwiseStage->appendNamePostfix(namePostfix);
-                eltwiseStage->attrs().set<StageType>("postOperation", reluStageType);
-                eltwiseStage->attrs().set<float>("negativeSlope", negativeSlope);
-                eltwiseStage->attrs().set<float>("min_value", min_value);
-                eltwiseStage->attrs().set<float>("max_value", max_value);
-            }
+            auto namePostfix = " + " + reluStageName;
+            eltwiseStage->appendNamePostfix(namePostfix);
+            eltwiseStage->attrs().set<StageType>("postOperation", reluStageType);
+            eltwiseStage->attrs().set<float>("negativeSlope", negativeSlope);
+            eltwiseStage->attrs().set<float>("min_value", min_value);
+            eltwiseStage->attrs().set<float>("max_value", max_value);
         }
     }
 }
 
 }  // namespace
 
-Pass::Ptr PassManager::mergeEltwiseAndReLUStatic() {
-    return std::make_shared<PassImpl>(MergeMode::STATIC_NETWORK);
-}
-
-Pass::Ptr PassManager::mergeEltwiseAndReLUDynamic() {
-    return std::make_shared<PassImpl>(MergeMode::DYNAMIC_NETWORK);
+Pass::Ptr PassManager::mergeEltwiseAndReLU() {
+    return std::make_shared<PassImpl>();
 }
 
 }  // namespace vpu

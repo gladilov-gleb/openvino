@@ -587,6 +587,19 @@ bool GraphDataTiling::patternMatching() {
 
         return true;
     }
+    if (!_convolutionOptions._withPool &&
+        _convolutionOptions._kernelSizeX == 1 && _convolutionOptions._kernelSizeY == 1 &&
+        _convolutionOptions._paddingLeft == 0 && _convolutionOptions._paddingRight == 0 &&
+        _convolutionOptions._paddingTop == 0 && _convolutionOptions._paddingBottom == 0 &&
+        _convolutionOptions._kernelStride == 1 &&
+        _convolutionOptions._inputDims[Dim::W] == 7 &&
+        _convolutionOptions._inputDims[Dim::H] == 7 &&
+        _convolutionOptions._inputDims[Dim::C] == 1024 &&
+        _convolutionOptions._outputDims[Dim::C] == 2048) {
+        _inputTileDims.set(Dim::H, 4);
+
+        return true;
+    }
 
     return false;
 }

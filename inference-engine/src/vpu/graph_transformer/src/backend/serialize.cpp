@@ -252,8 +252,57 @@ void BackEnd::serialize(
     const auto& execStages = getExecStages();
     numActiveStages = checked_cast<int>(execStages.size());
 
-    for (const auto& stage : execStages) {
-        stage->serialize(stagesSerializer);
+    {
+#define LOG_MODEL
+#if defined (LOG_MODEL)
+        std::size_t index = 0;
+        std::ofstream file("/home/ggladilo/dev/openvino/vehicle_detector_vpu_model.log");
+        auto const logDataDescription = [&file](DataNode const& data) {
+            file << data.name() << " "
+                 << '{'
+                    << data.usage() << ", "
+                    << data.desc().type() << ", "
+                    << data.desc().dimsOrder() << ", "
+                    << data.desc().dims()
+                 << '}';
+        };
+        auto const logData = [&file, &logDataDescription](DataNode const& data) {
+            logDataDescription(data);
+            if (auto const& parentDataShapeEdge = data.parentDataToShapeEdge()) {
+                file << " <- ";
+                logDataDescription(*(parentDataShapeEdge->parent().get()));
+            }
+        };
+        auto const logStage = [&file, &logData](StageNode const& stage) {
+            file << stage.name() << " " << '{' << stage.type() << '}';
+            file << " ";
+            file << '[';
+            for (std::size_t i = 0, size = static_cast<std::size_t>(stage.numInputs()); i < size; ++i) {
+                logData(*(stage.input(i).get()));
+                if (i < size - 1) {
+                    file << ", ";
+                }
+            }
+            file << ']';
+            file << " -> ";
+            file << '[';
+            for (std::size_t i = 0, size = static_cast<std::size_t>(stage.numOutputs()); i < size; ++i) {
+                logData(*(stage.output(i).get()));
+                if (i < size - 1) {
+                    file << ", ";
+                }
+            }
+            file << ']';
+        };
+#endif
+        for (const auto& stage : execStages) {
+#if defined (LOG_MODEL)
+            file << index++ << " ";
+            logStage(*stage);
+            file << '\n';
+#endif
+            stage->serialize(stagesSerializer);
+        }
     }
 
     const auto modelStagesStat = getModelStagesStat();

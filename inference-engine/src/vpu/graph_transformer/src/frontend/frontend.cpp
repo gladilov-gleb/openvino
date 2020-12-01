@@ -208,6 +208,7 @@ ie::ICNNNetwork::Ptr FrontEnd::convertNetwork(ie::ICNNNetwork& network) {
 
     vpu::MergeSubsequentDSROperations().run_on_function(nGraphFunc);
 
+    ngraph::pass::VisualizeTree("/home/ggladilo/dev/openvino/vehicle_detector.svg").run_on_function(nGraphFunc);
     return InferenceEngine::details::convertFunctionToICNNNetwork(nGraphFunc, network);
 }
 

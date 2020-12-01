@@ -32,6 +32,7 @@
 
 #include "ngraph/opsets/opset3.hpp"
 #include <ngraph/validation_util.hpp>
+#include <ngraph/pass/visualize_tree.hpp>
 #include "ngraph/opsets/opset5.hpp"
 
 namespace vpu {
@@ -172,6 +173,8 @@ DynamicToStaticShape::DynamicToStaticShape(const Transformations& specificTransf
 }
 
 bool DynamicToStaticShape::run_on_function(std::shared_ptr<ngraph::Function> function) {
+    ngraph::pass::VisualizeTree("/home/ggladilo/dev/openvino/vehicle_detector_input.svg").run_on_function(function);
+
     bool function_changed = false;
 
     // Ensure that existing DSRs in function propagate upper-bound shapes, not dynamism.
@@ -197,6 +200,8 @@ bool DynamicToStaticShape::run_on_function(std::shared_ptr<ngraph::Function> fun
 
     function->validate_nodes_and_infer_types();
     validateStaticShapes(*function);
+    ngraph::pass::VisualizeTree("/home/ggladilo/dev/openvino/vehicle_detector_after_dts.svg").run_on_function(function);
+
     return function_changed;
 }
 

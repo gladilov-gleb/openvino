@@ -147,6 +147,7 @@ IE_SUPPRESS_DEPRECATED_END
         _watchdogInterval = std::chrono::milliseconds(std::stoi(envVar));
     }
 #endif
+    _watchdogInterval = std::chrono::milliseconds(0);
 }
 
 }  // namespace MyriadPlugin

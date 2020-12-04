@@ -110,6 +110,7 @@ int main(int argc, char *argv[]) {
     std::shared_ptr<StatisticsReport> statistics;
     try {
         ExecutableNetwork exeNetwork;
+        OutputsDataMap outputsDataMap;
 
         // ----------------- 1. Parsing and validating input arguments -------------------------------------------------
         next_step();
@@ -276,6 +277,8 @@ int main(int argc, char *argv[]) {
                 }
             } else if (device == "MYRIAD") {
                 device_config[CONFIG_KEY(LOG_LEVEL)] = CONFIG_VALUE(LOG_WARNING);
+                device_config["MYRIAD_COPY_OPTIMIZATION"] = CONFIG_VALUE(NO);
+                device_config["MYRIAD_HW_INJECT_STAGES"] = CONFIG_VALUE(NO);
             } else if (device == "GNA") {
                 if (FLAGS_qb == 8)
                     device_config[GNA_CONFIG_KEY(PRECISION)] = "I8";
@@ -326,6 +329,7 @@ int main(int argc, char *argv[]) {
 
             auto startTime = Time::now();
             CNNNetwork cnnNetwork = ie.ReadNetwork(FLAGS_m);
+            outputsDataMap = cnnNetwork.getOutputsInfo();
             auto duration_ms = double_to_string(get_total_ms_time(startTime));
             slog::info << "Read network took " << duration_ms << " ms" << slog::endl;
             if (statistics)
@@ -370,12 +374,14 @@ int main(int argc, char *argv[]) {
             // ----------------- 6. Configuring input ----------------------------------------------------------------------
             next_step();
 
-            for (auto& item : inputInfo) {
-                if (isImage(item.second)) {
-                    /** Set the precision of input data provided by the user, should be called before load of the network to the device **/
-                    item.second->setPrecision(Precision::U8);
-                }
-            }
+//          Network input should be FP32
+//            for (auto& item : inputInfo) {
+//                if (isImage(item.second)) {
+//                    /** Set the precision of input data provided by the user, should be called before load of the network to the device **/
+//                    std::cerr << "Treating " << item.first << " as image and setting precision to " << Precision::U8 << '\n';
+//                    item.second->setPrecision(Precision::U8);
+//                }
+//            }
             // ----------------- 7. Loading the model to the device --------------------------------------------------------
             next_step();
             startTime = Time::now();
@@ -525,23 +531,25 @@ int main(int argc, char *argv[]) {
         next_step(ss.str());
 
         // warming up - out of scope
-        auto inferRequest = inferRequestsQueue.getIdleRequest();
-        if (!inferRequest) {
-            THROW_IE_EXCEPTION << "No idle Infer Requests!";
-        }
-        if (FLAGS_api == "sync") {
-            inferRequest->infer();
-        } else {
-            inferRequest->startAsync();
-        }
-        inferRequestsQueue.waitAll();
-        auto duration_ms = double_to_string(inferRequestsQueue.getLatencies()[0]);
-        slog::info << "First inference took " << duration_ms << " ms" << slog::endl;
-        if (statistics)
-            statistics->addParameters(StatisticsReport::Category::EXECUTION_RESULTS,
-                                        {
-                                                {"first inference time (ms)", duration_ms}
-                                        });
+//        auto inferRequest = inferRequestsQueue.getIdleRequest();
+//        if (!inferRequest) {
+//            THROW_IE_EXCEPTION << "No idle Infer Requests!";
+//        }
+//        if (FLAGS_api == "sync") {
+//            inferRequest->infer();
+//        } else {
+//            inferRequest->startAsync();
+//        }
+//        inferRequestsQueue.waitAll();
+//        auto duration_ms = double_to_string(inferRequestsQueue.getLatencies()[0]);
+//        slog::info << "First inference took " << duration_ms << " ms" << slog::endl;
+//        if (statistics) {
+//            statistics->addParameters(StatisticsReport::Category::EXECUTION_RESULTS,
+//                                        {
+//                                                {"first inference time (ms)", duration_ms}
+//                                        });
+//        }
+#if 1
         inferRequestsQueue.resetTimes();
 
         auto startTime = Time::now();
@@ -554,7 +562,7 @@ int main(int argc, char *argv[]) {
         while ((niter != 0LL && iteration < niter) ||
                (duration_nanoseconds != 0LL && (uint64_t)execTime < duration_nanoseconds) ||
                (FLAGS_api == "async" && iteration % nireq != 0)) {
-            inferRequest = inferRequestsQueue.getIdleRequest();
+            auto inferRequest = inferRequestsQueue.getIdleRequest();
             if (!inferRequest) {
                 THROW_IE_EXCEPTION << "No idle Infer Requests!";
             }
@@ -570,6 +578,43 @@ int main(int argc, char *argv[]) {
                 inferRequest->wait();
                 inferRequest->startAsync();
             }
+
+            inferRequest->wait();
+            for (auto const& outputInfo : outputsDataMap) {
+                auto const& name = outputInfo.first;
+                std::ofstream file(FLAGS_m.substr(0, FLAGS_m.size() - std::string{".onnx"}.size()) + "_actual_" + name + ".log");
+                auto const& blob = inferRequest->getBlob(name);
+                auto const& size = blob->size();
+                auto const& type = blob->getTensorDesc().getPrecision();
+                std::cerr << "Output " << name << ": "
+                          << "tensor desc layout = " << blob->getTensorDesc().getLayout() << " "
+                          << "tensor desc precision = " << type << " "
+                          << "tensor desc dims = ";
+                auto const& dims = blob->getTensorDesc().getDims();
+                for (std::size_t i = 0; i < dims.size(); i++) {
+                    std::cerr << dims[i];
+                    if (i < dims.size() - 1) {
+                        std::cerr << " ";
+                    }
+                }
+                std::cerr << '\n';
+                file << "size = " << blob->size() << '\n';
+
+                if (type == InferenceEngine::Precision::FP32) {
+                    auto const pointer = blob->cbuffer().as<float const*>();
+                    for (std::size_t i = 0; i < size; ++i) {
+                        file << i << ": " << pointer[i] << '\n';
+                    }
+                } else if (type == InferenceEngine::Precision::I32) {
+                    auto const pointer = blob->cbuffer().as<std::int32_t const*>();
+                    for (std::size_t i = 0; i < size; ++i) {
+                        file << i << ": " << pointer[i] << '\n';
+                    }
+                } else {
+                    THROW_IE_EXCEPTION << "Unsupported output blob precision " << type;
+                }
+            }
+
             iteration++;
 
             execTime = std::chrono::duration_cast<ns>(Time::now() - startTime).count();
@@ -658,6 +703,8 @@ int main(int argc, char *argv[]) {
         if (device_name.find("MULTI") == std::string::npos)
             std::cout << "Latency:    " << double_to_string(latency) << " ms" << std::endl;
         std::cout << "Throughput: " << double_to_string(fps) << " FPS" << std::endl;
+#endif
+        std::cout << "Done" << '\n';
     } catch (const std::exception& ex) {
         slog::err << ex.what() << slog::endl;
 

@@ -1031,6 +1031,9 @@ inline std::size_t getTensorWidth(const InferenceEngine::TensorDesc& desc) {
          layout == InferenceEngine::Layout::GOIDHW ||
          layout == InferenceEngine::Layout::CHW    ||
          layout == InferenceEngine::Layout::HW)) {
+        if (layout == InferenceEngine::Layout::CHW) {
+            return dims.at(1);
+        }
         // Regardless of layout, dimensions are stored in fixed order
         return dims.back();
     } else {
@@ -1054,6 +1057,9 @@ inline std::size_t getTensorHeight(const InferenceEngine::TensorDesc& desc) {
          layout == InferenceEngine::Layout::GOIDHW ||
          layout == InferenceEngine::Layout::CHW    ||
          layout == InferenceEngine::Layout::HW)) {
+        if (layout == InferenceEngine::Layout::CHW) {
+            return dims.at(0);
+        }
         // Regardless of layout, dimensions are stored in fixed order
         return dims.at(size - 2);
     } else {
@@ -1077,7 +1083,7 @@ inline std::size_t getTensorChannels(const InferenceEngine::TensorDesc& desc) {
         switch (desc.getLayoutByDims(dims)) {
             case InferenceEngine::Layout::C:     return dims.at(0);
             case InferenceEngine::Layout::NC:    return dims.at(1);
-            case InferenceEngine::Layout::CHW:   return dims.at(0);
+            case InferenceEngine::Layout::CHW:   return dims.at(2);
             case InferenceEngine::Layout::NCHW:  return dims.at(1);
             case InferenceEngine::Layout::NCDHW: return dims.at(1);
             case InferenceEngine::Layout::SCALAR:   // [[fallthrough]]

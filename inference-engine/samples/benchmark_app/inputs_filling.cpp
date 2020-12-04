@@ -59,7 +59,7 @@ void fillBlobImage(Blob::Ptr& inputBlob,
     }
     // locked memory holder should be alive all time while access to its buffer happens
     auto minputHolder = minput->wmap();
-    auto inputBlobData = minputHolder.as<uint8_t *>();
+    auto inputBlobData = minputHolder.as<float *>();
     const TensorDesc& inputBlobDesc = inputBlob->getTensorDesc();
 
     /** Collect images data ptrs **/
@@ -94,7 +94,7 @@ void fillBlobImage(Blob::Ptr& inputBlob,
             /** Iterate over all channels **/
             for (size_t ch = 0; ch < numChannels; ++ch) {
                 /**          [images stride + channels stride + pixel id ] all in bytes            **/
-                inputBlobData[imageId * imageSize * numChannels + ch * imageSize + pid] = vreader.at(imageId).get()[pid*numChannels + ch];
+                inputBlobData[imageId * imageSize * numChannels + pid * numChannels + ch] = static_cast<float>(vreader.at(imageId).get()[pid*numChannels + ch]);
             }
         }
     }

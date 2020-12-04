@@ -14,11 +14,12 @@
 template<typename T>
 static bool isImage(const T &blob) {
     auto descriptor = blob->getTensorDesc();
-    if (descriptor.getLayout() != InferenceEngine::NCHW) {
-        return false;
+    if (descriptor.getLayout() == InferenceEngine::NCHW) {
+        return descriptor.getDims()[1] == 3;
+    } else if (descriptor.getLayout() == InferenceEngine::CHW) {
+        return descriptor.getDims()[0] == 3 || descriptor.getDims()[2] == 3;
     }
-    auto channels = descriptor.getDims()[1];
-    return channels == 3;
+    return false;
 }
 
 template<typename T>

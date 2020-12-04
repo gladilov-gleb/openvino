@@ -13,18 +13,22 @@
 
 namespace vpu {
 
-void FrontEnd::parseGather(const Model& model, const ie::CNNLayerPtr& _layer, const DataVector& inputs, const DataVector& outputs) const {
-    IE_ASSERT(inputs.size() == 2);
-    IE_ASSERT(outputs.size() == 1);
-    auto layer = std::dynamic_pointer_cast<ie::GatherLayer>(_layer);
+void FrontEnd::parseGather(const Model& model, const ie::CNNLayerPtr& layer, const DataVector& inputs, const DataVector& outputs) const {
     IE_ASSERT(layer != nullptr);
+    IE_ASSERT(inputs.size() == 3);
+    IE_ASSERT(outputs.size() == 1);
+
+    IE_ASSERT(inputs[2]->usage() == DataUsage::Const);
+    IE_ASSERT(inputs[2]->desc().type() == DataType::S32);
+    IE_ASSERT(inputs[2]->desc().numDims() == 1);
+    IE_ASSERT(inputs[2]->desc().totalDimSize() == 1);
 
     auto input = inputs[0];
-
-    IE_ASSERT(layer->axis < input->desc().numDims());
+    auto const axis = inputs[2]->content()->get<std::int32_t>()[0];
+    IE_ASSERT(axis < input->desc().numDims());
 
     const auto perm = DimsOrder::fromNumDims(input->desc().numDims()).toPermutation();
-    const auto ieNormalizedAxis = layer->axis < 0 ? input->desc().numDims() + layer->axis : layer->axis;
+    const auto ieNormalizedAxis = axis < 0 ? input->desc().numDims() + axis : axis;
     const auto axisDim = perm[input->desc().numDims() - 1 - ieNormalizedAxis];
 
     _stageBuilder->addGatherStage(model, layer->name, layer, inputs[0], inputs[1], outputs[0], axisDim);

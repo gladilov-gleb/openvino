@@ -149,16 +149,14 @@ Data insertCopyOfInput(const Model& model,
 
     bool hasMultipleInputs = stage->numInputs() > 1;
     auto inputNumStr = hasMultipleInputs ? formatString("@input=%d", edge->portInd()) : "";
-    std::stringstream typeAsString;
-    typeAsString << stage->type();
 
     auto copyStage = _stageBuilder->addCopyStage(
             model,
-            formatString("%s%s@copy-for-%s", stage->name(), inputNumStr, typeAsString),
+            formatString("%s%s@copy-for-%s", stage->name(), inputNumStr, stage->type()),
             stage->origLayer(),
             data,
             copy,
-            formatString("special::%s", typeAsString));
+            formatString("special::%s", stage->type()));
     if (stage->type() != StageType::Reshape) {
         copyStage->attrs().set<bool>("optional", desc.isCopyOptional);
     }
@@ -183,16 +181,14 @@ Data insertCopyOfOutput(const Model& model,
 
     bool hasMultipleOutputs = stage->numOutputs() > 1;
     auto outputNumStr = hasMultipleOutputs ? formatString("@output=%d", edge->portInd()) : "";
-    std::stringstream typeAsString;
-    typeAsString << stage->type();
 
     auto copyStage = _stageBuilder->addCopyStage(
             model,
-            formatString("%s%s@copy-for-%s", stage->name(), outputNumStr, typeAsString),
+            formatString("%s%s@copy-for-%s", stage->name(), outputNumStr, stage->type()),
             stage->origLayer(),
             copy,
             data,
-            formatString("special::%s", typeAsString));
+            formatString("special::%s", stage->type()));
     if (stage->attrs().has("batchInd")) {
         copyStage->attrs().set("batchInd", stage->attrs().get<int>("batchInd"));
     }

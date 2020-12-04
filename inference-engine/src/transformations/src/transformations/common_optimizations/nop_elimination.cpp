@@ -21,6 +21,7 @@
 #include <unordered_map>
 
 #include <ngraph/opsets/opset3.hpp>
+#include <ngraph/opsets/opset5.hpp>
 #include <ngraph/util.hpp>
 #include <ngraph/log.hpp>
 #include <transformations/common_optimizations/nop_elimination.hpp>
@@ -43,6 +44,22 @@ static bool eliminate_nop(const std::shared_ptr<Node>& node) {
         return replace_output_update_name(node->output(0), node->input_value(0));
     }
     return false;
+}
+
+static bool eliminate_split(const std::shared_ptr<Node>& split) {
+    if (split->get_output_size() != 1) {
+        return false;
+    }
+
+    auto const& division = split->get_input_source_output(2);
+    if (!ngraph::as_type_ptr<ngraph::opset5::Constant>(division.get_node_shared_ptr())) {
+        return false;
+    }
+    if (division.get_shape().size() != 1) {
+        return false;
+    }
+
+    return replace_output_update_name(split->output(0), split->input_value(0));
 }
 
 static bool eliminate_convert(const std::shared_ptr<Node>& node) {
@@ -338,7 +355,8 @@ bool pass::NopElimination::run_on_function(std::shared_ptr<Function> function) {
                    {TI(opset3::Concat), &eliminate_concat},
                    {TI(opset3::Squeeze), &eliminate_squeeze},
                    {TI(op::v1::Broadcast), &eliminate_nop},
-                   {TI(opset3::Unsqueeze), &eliminate_unsqueeze}};
+                   {TI(opset3::Unsqueeze), &eliminate_unsqueeze},
+                   {TI(opset5::VariadicSplit), &eliminate_split}};
 
     bool clobbered = false;
 

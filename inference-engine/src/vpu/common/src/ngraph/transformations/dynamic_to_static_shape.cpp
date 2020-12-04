@@ -72,7 +72,7 @@ bool propagateUpperBoundFromExistingDSR(std::shared_ptr<ngraph::Function>& funct
 
 void validateDynamicFunction(const ngraph::Function& function) {
     for (auto const& split : function.get_ordered_ops()) {
-        if (split->get_type_info() != ngraph::opset5::Split::type_info) {
+        if (split->get_type_info() != ngraph::opset5::Split::type_info && split->get_type_info() != ngraph::opset5::VariadicSplit::type_info) {
             continue;
         }
 
@@ -83,7 +83,7 @@ void validateDynamicFunction(const ngraph::Function& function) {
         const auto axisValue = ngraph::normalize_axis(split.get(), axis->cast_vector<std::int64_t>().front(), split->get_input_partial_shape(0).rank());
         VPU_THROW_UNLESS(split->get_input_partial_shape(0)[axisValue].is_static(),
                          "There is Split operation \"{}\" by dynamic dimension, but only split by static dimension is supported: shape = \"{}\", axis = \"{}\"",
-                         split->get_friendly_name(), split->get_input_partial_shape(0), axisValue);
+                         split, split->get_input_partial_shape(0), axisValue);
     }
 }
 

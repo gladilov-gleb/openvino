@@ -208,7 +208,6 @@ ie::ICNNNetwork::Ptr FrontEnd::convertNetwork(ie::ICNNNetwork& network) {
 
     vpu::MergeSubsequentDSROperations().run_on_function(nGraphFunc);
 
-    ngraph::pass::VisualizeTree("/home/ggladilo/dev/openvino/vehicle_detector.svg").run_on_function(nGraphFunc);
     return InferenceEngine::details::convertFunctionToICNNNetwork(nGraphFunc, network);
 }
 
@@ -390,7 +389,12 @@ void FrontEnd::defaultOnUnsupportedLayerCallback(const Model& model, const ie::C
         VPU_THROW_UNSUPPORTED_UNLESS(env.config.ignoreUnknownLayers, "Failed to compile layer \"%v\": %v", layer->name,
                                      extraMessage);
     }
-    _stageBuilder->addNoneStage(model, layer->name, layer, inputs, outputs);
+
+    if (layer->type == "Round") {
+        _stageBuilder->addCopyStage(model, layer->name, layer, inputs[0], outputs[0], "@convert-round");
+    } else {
+        _stageBuilder->addNoneStage(model, layer->name, layer, inputs, outputs);
+    }
 }
 
 ModelPtr FrontEnd::runCommonPasses(const ie::ICNNNetwork& network) {

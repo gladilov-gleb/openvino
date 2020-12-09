@@ -60,6 +60,9 @@ namespace ngraph
                     if (inputs.size() > 1 && !ngraph::op::is_null(inputs.at(1)))
                     {
                         min = inputs.at(1);
+                        if (inputs.size() == 2) {
+                            return {std::make_shared<default_opset::Maximum>(min, data)};
+                        }
                     }
                     else
                     {
@@ -76,7 +79,7 @@ namespace ngraph
                     else
                     {
                         max = builder::make_constant(
-                            data_type, Shape{}, std::numeric_limits<double>::max());
+                            data_type, Shape{}, 1000000);
                     }
 
                     const auto max_of_min_and_data =

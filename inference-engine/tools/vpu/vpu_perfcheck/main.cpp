@@ -373,7 +373,7 @@ int process(const std::string& modelFileName, const std::string& inputsDir,
         // HARD-CODE: for mask rcnn onnx model input shape
         if (ng_function->get_parameters().size() != 1)
             throw std::logic_error("unexpected Parameters number in ONNX model file " + modelFileName);
-        ng_function->get_parameters()[0]->set_partial_shape({1, 3, 800, 1216});
+        ng_function->get_parameters()[0]->set_partial_shape({1, 3, 400, 608});
         // END OF HARD-CODE
         cnnNetwork = InferenceEngine::CNNNetwork(ng_function);
     } else {

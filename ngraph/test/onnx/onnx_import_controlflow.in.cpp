@@ -379,8 +379,9 @@ NGRAPH_TEST(${BACKEND_NAME}, onnx_controlflow_loop_2d_trip_count_and_cond_skippe
     EXPECT_TRUE(function->get_output_partial_shape(0).is_static());
     EXPECT_EQ(function->get_output_shape(0), (Shape{1, 2}));
     EXPECT_EQ(function->get_output_element_type(1), ngraph::element::f32);
-    // scan_outputs shape is not know if trip_count and termination condition is not determined
-    EXPECT_TRUE(function->get_output_partial_shape(1).rank().is_dynamic());
+    EXPECT_TRUE(function->get_output_partial_shape(1).rank().is_static());
+    EXPECT_EQ(function->get_output_partial_shape(1).rank(), 2);
+    EXPECT_EQ(function->get_output_partial_shape(1), (PartialShape{Dimension::dynamic(), 2}));
 }
 
 // infinitive loop execution

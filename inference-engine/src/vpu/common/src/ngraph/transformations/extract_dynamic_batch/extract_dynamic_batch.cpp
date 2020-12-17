@@ -382,6 +382,7 @@ bool updateExternals(const ngraph::Node* source, const Nodes& allForward, const 
 }  // namespace
 
 bool ExtractBatch::run_on_function(std::shared_ptr<ngraph::Function> functionPointer) {
+    ngraph::pass::VisualizeTree("/home/ggladilo/dev/openvino/extract_batch_input.svg").run_on_function(functionPointer);
     auto& function = *functionPointer;
     bool changed = false;
 

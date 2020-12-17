@@ -173,7 +173,7 @@ DynamicToStaticShape::DynamicToStaticShape(const Transformations& specificTransf
 }
 
 bool DynamicToStaticShape::run_on_function(std::shared_ptr<ngraph::Function> function) {
-    ngraph::pass::VisualizeTree("/home/ggladilo/dev/openvino/vehicle_detector_input.svg").run_on_function(function);
+    ngraph::pass::VisualizeTree("/home/ggladilo/dev/openvino/dynamic_to_static_shape_input.svg").run_on_function(function);
 
     bool function_changed = false;
 
@@ -198,9 +198,10 @@ bool DynamicToStaticShape::run_on_function(std::shared_ptr<ngraph::Function> fun
         function_changed = true;
     }
 
+    ngraph::pass::VisualizeTree("/home/ggladilo/dev/openvino/dynamic_to_static_shape_before_validate.svg").run_on_function(function);
     function->validate_nodes_and_infer_types();
     validateStaticShapes(*function);
-    ngraph::pass::VisualizeTree("/home/ggladilo/dev/openvino/vehicle_detector_after_dts.svg").run_on_function(function);
+    ngraph::pass::VisualizeTree("/home/ggladilo/dev/openvino/dynamic_to_static_shape_output.svg").run_on_function(function);
 
     return function_changed;
 }

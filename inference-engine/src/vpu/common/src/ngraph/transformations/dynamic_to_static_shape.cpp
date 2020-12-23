@@ -23,6 +23,7 @@
 #include "vpu/ngraph/transformations/dynamic_to_static_shape_unary_elementwise.hpp"
 #include "vpu/ngraph/transformations/dynamic_to_static_shape_unsqueeze.hpp"
 #include "vpu/ngraph/transformations/dynamic_to_static_shape_variadic_split.hpp"
+#include "vpu/ngraph/transformations/dynamic_to_static_shape_loop.hpp"
 
 #include "vpu/ngraph/utilities.hpp"
 #include "vpu/utils/error.hpp"
@@ -140,6 +141,8 @@ const Transformations& getDefaultTransformations() {
         {ngraph::opset3::ReduceMin::type_info,        dynamicToStaticShapeReduce},
         {ngraph::opset3::ReduceProd::type_info,       dynamicToStaticShapeReduce},
         {ngraph::opset3::ReduceSum::type_info,        dynamicToStaticShapeReduce},
+
+        {ngraph::opset5::Loop::type_info, dynamicToStaticShapeLoop},
     };
     return transformations;
 }

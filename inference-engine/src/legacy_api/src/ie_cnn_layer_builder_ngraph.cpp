@@ -694,7 +694,7 @@ CNNLayer::Ptr NodeConverter<ngraph::op::Concat>::createLayer(const std::shared_p
 }
 
 template <>
-CNNLayer::Ptr NodeConverter<ngraph::op::v5::GatherElements>::createLayer(const std::shared_ptr<ngraph::Node>& layer) const {
+CNNLayer::Ptr NodeConverter<ngraph::op::v6::GatherElements>::createLayer(const std::shared_ptr<ngraph::Node>& layer) const {
     LayerParams params = {layer->get_friendly_name(), "GatherElements",
                           details::convertPrecision(layer->get_output_element_type(0))};
     auto res = std::make_shared<InferenceEngine::CNNLayer>(params);

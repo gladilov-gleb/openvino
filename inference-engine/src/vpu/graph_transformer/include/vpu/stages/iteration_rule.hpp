@@ -13,6 +13,8 @@
 
 namespace vpu {
 
+constexpr auto g_dynamicIterationCount = -1;
+
 class IterationRule {
 public:
     IterationRule(Dim new_axis, int32_t new_start, int32_t new_stride, int32_t new_end)
